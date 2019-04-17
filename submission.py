@@ -12,8 +12,20 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     # emissions are of the format: dict[f1]: (f2, f3)
     symbols, emissions = read_symbol_file(Symbol_File)
 
-    tokens = parse_query_file(Query_File)
+    query_tokens = parse_query_file(Query_File)
 
+    print('States are:', states)
+    print('Symbols are:', symbols)
+    print('Query tokens are:', query_tokens)
+    tokens_id = []
+    # Convert each token into symbol IDs
+    for query_token in query_tokens:
+        tk = []
+        for token in query_token:       
+            symbol_id = symbols[token] if token in symbols.keys() else 'UNK'
+            tk.append(symbol_id)
+        tokens_id.append(tk)
+    print('Query tokens id form:', tokens_id)
 
 
 
@@ -36,7 +48,7 @@ def read_state_file(file):
             if N is None:
                 N = int(line)
             elif N is not None and i < N:
-                state[i] = line
+                state[i] = line.strip()
                 i += 1
             else:
                 f1, f2, f3 = map(int, line.split())
@@ -50,6 +62,7 @@ def read_symbol_file(file):
     frequencies = dict()
     with open(file, 'r') as f:
         for line in f:
+            line = line.strip()
             if N is None:
                 N = int(line)
             elif N is not None and i < N:
@@ -66,6 +79,7 @@ def parse_query_file(file):
     tokens = []
     with open(file, 'r') as f:
         for line in f:
+            line = line.strip()
             token = []
             queries = line.split()
             for q in queries:
