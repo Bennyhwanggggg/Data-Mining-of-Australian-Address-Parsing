@@ -6,13 +6,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     # Get the states and transitions from the file.
     # The states are of the format: dict[ID]: name
     # transitions are of the format: dict[f1]: (f2, f3)
-    states, transitions = read_state_or_symbol_file(State_File)
+    states, transitions = read_state_file(State_File)
     # Get the symbols and emissions from the file.
-    # The symbols are of the format: dict[ID]: name
+    # The symbols are of the format: dict[name]: ID
     # emissions are of the format: dict[f1]: (f2, f3)
-    symbols, emissions = read_state_or_symbol_file(Symbol_File)
+    symbols, emissions = read_symbol_file(Symbol_File)
 
-    parse_query_file(Query_File)
+    tokens = parse_query_file(Query_File)
+
+
 
 
 # Question 2
@@ -25,21 +27,38 @@ def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the 
     pass # Replace this line with your implementation...
 
 
-def read_state_or_symbol_file(file):
+def read_state_file(file):
     N, i = None, 0
-    names = dict()
+    state = dict()
     frequencies = dict()
     with open(file, 'r') as f:
         for line in f:
             if N is None:
                 N = int(line)
             elif N is not None and i < N:
-                names[i] = line
+                state[i] = line
                 i += 1
             else:
                 f1, f2, f3 = map(int, line.split())
                 frequencies[f1] = (f2, f3)
-    return names, frequencies
+    return state, frequencies
+
+
+def read_symbol_file(file):
+    N, i = None, 0
+    symbols = dict()
+    frequencies = dict()
+    with open(file, 'r') as f:
+        for line in f:
+            if N is None:
+                N = int(line)
+            elif N is not None and i < N:
+                symbols[line] = i
+                i += 1
+            else:
+                f1, f2, f3 = map(int, line.split())
+                frequencies[f1] = (f2, f3)
+    return symbols, frequencies
 
 
 def parse_query_file(file):
