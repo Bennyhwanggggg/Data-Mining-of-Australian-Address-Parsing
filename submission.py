@@ -1,4 +1,5 @@
 # Import your files here...
+import re
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
@@ -10,6 +11,8 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     # The symbols are of the format: dict[ID]: name
     # emissions are of the format: dict[f1]: (f2, f3)
     symbols, emissions = read_state_or_symbol_file(Symbol_File)
+
+    parse_query_file(Query_File)
 
 
 # Question 2
@@ -38,6 +41,21 @@ def read_state_or_symbol_file(file):
                 frequencies[f1] = (f2, f3)
     return names, frequencies
 
+
+def parse_query_file(file):
+    delimiters = '*,()/-&'
+    tokens = []
+    with open(file, 'r') as f:
+        for line in f:
+            token = []
+            queries = line.split()
+            for q in queries:
+                tk = re.split(r'(\*|\,|\(|\)|\/|-|\&)', q)
+                for t in tk:
+                    if t != '':
+                        token.append(t)
+            tokens.append(token)
+    return tokens
 
 
 if __name__ == '__main__':
