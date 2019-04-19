@@ -27,6 +27,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
         tokens_id.append(tk)
     print('Query tokens id form:', tokens_id)
 
+    # Smoothing the transition probabilities
+    trainsition_probabilities = {'BEGIN': {'BEGIN': 0}, 'END': {'END': 0}}
+    # TODO: construct a dict of transition probabilities by going through the frequencies
+
+    # Smoothing the emission probabilities
+    # TODO: construct a dict of smoothing probabilities
+
+    start_probability = {'BEGIN': 1}
+
 
 
 # Question 2
