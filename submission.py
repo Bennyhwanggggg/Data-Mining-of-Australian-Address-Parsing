@@ -8,6 +8,13 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     # The states are of the format: dict[ID]: name
     # transitions are of a matrix format with ID as the indices
     states, transitions = read_state_file(State_File)
+    # find BEGIN and END id
+    begin_id, end_id = None, None
+    for id in states.keys():
+        if states[id] == 'BEGIN':
+            begin_id = id
+        if states[id] == 'END':
+            end_id = id
 
     N = len(states.keys())
     print('N is {}'.format(N))
@@ -29,7 +36,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     for query_token in query_tokens:
         tk = []
         for token in query_token:       
-            symbol_id = symbols[token] if token in symbols.keys() else 'UNK'
+            symbol_id = symbols[token] if token in symbols.keys() else len(symbols.keys())+1  # Give UNK the last id
             tk.append(symbol_id)
         tokens_id.append(tk)
     print('Query tokens id form:', tokens_id)
@@ -55,6 +62,21 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
                 continue
             emission_probabilities[i, j] = (emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M + 1)
     print('Emission probabilities:\n{}'.format(emission_probabilities))
+
+    # Process each query
+    for query in tokens_id:
+        # setup T
+        T1 = np.array([[0.0 for _ in range(M)] for _ in range(N)])
+        T2 = np.array([[0.0 for _ in range(M)] for _ in range(N)])
+
+        for state in states.keys():
+            # initial_probabilities is transition_probabilities[begin_id, :], emission_probabilities[state, query[0]] is the probability of emission from a state to first observation
+            T1[state, 1] = transition_probabilities[begin_id, state]*emission_probabilities[state, query[0]]
+
+        for observation in query:
+            for state in states.keys():
+                T1[state, observation] = max([T1[k, observation]*transition_probabilities[end_id, state]*emission_probabilities[state, observation] for k in states.keys()])
+
 
 
 # Question 2
