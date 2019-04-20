@@ -1,6 +1,7 @@
 # Import your files here...
 import re
 import numpy as np
+import math
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
@@ -65,19 +66,26 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
             # initial_probabilities is transition_probabilities[begin_id, :], emission_probabilities[state, query[0]] is the probability of emission from a state to first observation
             T1[state, begin_id] = transition_probabilities[begin_id, state]*emission_probabilities[state, query[0]]
         prev = begin_id
+        print(T1)
+        print(transition_probabilities)
+        print(emission_probabilities)
         for i in range(len(query)):
             observation = query[i]
             for state in states.keys():
-                T1[state, observation], T2[state, observation] = max([(T1[k, prev] * 
-                                                                       transition_probabilities[k, state] * 
-                                                                       emission_probabilities[state, observation], k) for k in states.keys()])
+                if states[state] == 'BEGIN' or states[state] == 'END':
+                    continue
+                T1[state, observation], T2[state, observation] = max([(math.log(T1[k, prev]) + 
+                                                                       math.log(transition_probabilities[k, state]) + 
+                                                                       math.log(emission_probabilities[state, observation]), k) for k in states.keys()])
             prev = observation
 
-
-
         print(T1)
-        print(T2)
         print('='*10)
+        # current = begin_id
+        # path = []
+        # while current != end_id:
+        #     next_state = max(T1[])
+
 
 
 
