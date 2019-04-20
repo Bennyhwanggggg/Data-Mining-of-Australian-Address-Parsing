@@ -15,31 +15,22 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
             begin_id = id
         if states[id] == 'END':
             end_id = id
-
     N = len(states.keys())
-    print('N is {}'.format(N))
-
     # Get the symbols and emissions from the file.
     # The symbols are of the format: dict[name]: ID
     # emissions are of a matrix format with ID as the indices
     symbols, emissions = read_symbol_file(Symbol_File, N)
-
     query_tokens = parse_query_file(Query_File)
-
-    print('States are:\n{}'.format(states))
-    print('Transitions are:\n{}'.format(transitions))
-    print('Symbols are:\n{}'.format(symbols))
-    print('Emissions are:\n{}'.format(emissions))
-    print('Query tokens are:\n{}'.format(query_tokens))
     tokens_id = []
     # Convert each token into symbol IDs
     for query_token in query_tokens:
         tk = []
         for token in query_token:       
-            symbol_id = symbols[token] if token in symbols.keys() else len(symbols.keys())+1  # Give UNK the last id
+            symbol_id = symbols[token] if token in symbols.keys() else len(symbols.keys())  # Give UNK the last id
             tk.append(symbol_id)
         tokens_id.append(tk)
-    print('Query tokens id form:', tokens_id)
+
+    print(tokens_id)
 
     # Smoothing the transition probabilities
     transition_probabilities = np.array([[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
@@ -50,18 +41,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
             if states[i] == 'END':  # ignore when state to transition from is 'END' since there is no transition from it
                 continue
             transition_probabilities[i, j] = (transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
-            # transition_probabilities[i, j] = (transitions[i, j]) / (np.sum(transitions[i, :]))
-    print('Transition probabilities:\n{}'.format(transition_probabilities))
 
     # Smoothing the emission probabilities
-    M = len(symbols.keys())
+    M = len(symbols.keys())+1 # +1 for UNK
     emission_probabilities = np.array([[0.0 for _ in range(M)] for _ in range(N)])
     for i in range(N):
         for j in range(M):
             if states[i] == 'BEGIN' or states[i] == 'END':
                 continue
             emission_probabilities[i, j] = (emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M + 1)
-    print('Emission probabilities:\n{}'.format(emission_probabilities))
 
     # Process each query
     for query in tokens_id:
@@ -69,13 +57,27 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
         T1 = np.array([[0.0 for _ in range(M)] for _ in range(N)])
         T2 = np.array([[0.0 for _ in range(M)] for _ in range(N)])
 
+        path = { s:[] for s in states} # init path: path[s] represents the path ends with s
+        curr_pro = {}
+
+        # Base case from starting state
         for state in states.keys():
             # initial_probabilities is transition_probabilities[begin_id, :], emission_probabilities[state, query[0]] is the probability of emission from a state to first observation
-            T1[state, 1] = transition_probabilities[begin_id, state]*emission_probabilities[state, query[0]]
-
-        for observation in query:
+            T1[state, begin_id] = transition_probabilities[begin_id, state]*emission_probabilities[state, query[0]]
+        prev = begin_id
+        for i in range(len(query)):
+            observation = query[i]
             for state in states.keys():
-                T1[state, observation] = max([T1[k, observation]*transition_probabilities[end_id, state]*emission_probabilities[state, observation] for k in states.keys()])
+                T1[state, observation], T2[state, observation] = max([(T1[k, prev] * 
+                                                                       transition_probabilities[k, state] * 
+                                                                       emission_probabilities[state, observation], k) for k in states.keys()])
+            prev = observation
+
+
+
+        print(T1)
+        print(T2)
+        print('='*10)
 
 
 
@@ -131,7 +133,7 @@ def read_symbol_file(file, N):
             i += 1
         else:
             if frequencies is None:
-                frequencies = [[0 for _ in range(len(symbols.keys()))] for _ in range(N)]
+                frequencies = [[0 for _ in range(len(symbols.keys())+1)] for _ in range(N)]
             f1, f2, f3 = map(int, line.split())
             frequencies[f1][f2] = f3
     return symbols, np.array(frequencies)
