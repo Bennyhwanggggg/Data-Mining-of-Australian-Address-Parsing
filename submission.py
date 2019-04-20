@@ -11,7 +11,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
 
     N = len(states.keys())
     print('N is {}'.format(N))
-    
+
     # Get the symbols and emissions from the file.
     # The symbols are of the format: dict[name]: ID
     # emissions are of a matrix format with ID as the indices
@@ -44,15 +44,17 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
                 continue
             transition_probabilities[i, j] = (transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
             # transition_probabilities[i, j] = (transitions[i, j]) / (np.sum(transitions[i, :]))
-    print('Transition probabilities: ')
-    print(transition_probabilities)
+    print('Transition probabilities:\n{}'.format(transition_probabilities))
+
     # Smoothing the emission probabilities
-    # TODO: construct a dict of smoothing probabilities
     M = len(symbols.keys())
-    emission_probabilities = [[0 for _ in range(len(emi))]]
-
-    start_probability = {'BEGIN': 1}
-
+    emission_probabilities = np.array([[0.0 for _ in range(M)] for _ in range(N)])
+    for i in range(N):
+        for j in range(M):
+            if states[i] == 'BEGIN' or states[i] == 'END':
+                continue
+            emission_probabilities[i, j] = (emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M + 1)
+    print('Emission probabilities:\n{}'.format(emission_probabilities))
 
 
 # Question 2
