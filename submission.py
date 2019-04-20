@@ -6,20 +6,20 @@ import numpy as np
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
     # Get the states and transitions from the file.
     # The states are of the format: dict[ID]: name
-    # transitions are of the format: dict[f1]: (f2, f3)
+    # transitions are of a matrix format with ID as the indices
     states, transitions = read_state_file(State_File)
     # Get the symbols and emissions from the file.
     # The symbols are of the format: dict[name]: ID
-    # emissions are of the format: dict[f1]: (f2, f3)
+    # emissions are of a matrix format with ID as the indices
     symbols, emissions = read_symbol_file(Symbol_File)
 
     query_tokens = parse_query_file(Query_File)
 
-    print('States are:', states)
-    print('Transitions are:', transitions)
-    print('Symbols are:', symbols)
-    print('Emissions are:', emissions)
-    print('Query tokens are:', query_tokens)
+    print('States are:\n{}'.format(states))
+    print('Transitions are:\n{}'.format(transitions))
+    print('Symbols are:\n{}'.format(symbols))
+    print('Emissions are:\n{}'.format(emissions))
+    print('Query tokens are:\n{}'.format(query_tokens))
     tokens_id = []
     # Convert each token into symbol IDs
     for query_token in query_tokens:
@@ -31,9 +31,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     print('Query tokens id form:', tokens_id)
 
     # Smoothing the transition probabilities
-    trainsition_probabilities = {'BEGIN': {'BEGIN': 0}, 'END': {'END': 0}}
-    # TODO: construct a dict of transition probabilities by going through the frequencies
-
+    N = len(states.keys())
+    print('N is {}'.format(N))
+    transition_probabilities = np.array([[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
+    for i in range(len(transition_probabilities)):
+        for j in range(len(transition_probabilities[0])):
+            transition_probabilities[i, j] = (transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
+            # transition_probabilities[i, j] = (transitions[i, j]) / (np.sum(transitions[i, :]))
+    print('Transition probabilities: ')
+    print(np.matrix(transition_probabilities))
     # Smoothing the emission probabilities
     # TODO: construct a dict of smoothing probabilities
 
@@ -72,7 +78,7 @@ def read_state_file(file):
                 frequencies = [[0 for _ in range(len(state.keys()))] for _ in range(len(state.keys()))]
             f1, f2, f3 = map(int, line.split())
             frequencies[f1][f2] = f3
-    return state, frequencies
+    return state, np.array(frequencies)
 
 
 def read_symbol_file(file):
@@ -96,7 +102,7 @@ def read_symbol_file(file):
                 frequencies = [[0 for _ in range(len(symbols.keys()))] for _ in range(len(symbols.keys()))]
             f1, f2, f3 = map(int, line.split())
             frequencies[f1][f2] = f3
-    return symbols, frequencies
+    return symbols, np.array(frequencies)
 
 
 def parse_query_file(file):
