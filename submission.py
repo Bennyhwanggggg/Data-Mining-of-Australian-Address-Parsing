@@ -8,10 +8,14 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     # The states are of the format: dict[ID]: name
     # transitions are of a matrix format with ID as the indices
     states, transitions = read_state_file(State_File)
+
+    N = len(states.keys())
+    print('N is {}'.format(N))
+    
     # Get the symbols and emissions from the file.
     # The symbols are of the format: dict[name]: ID
     # emissions are of a matrix format with ID as the indices
-    symbols, emissions = read_symbol_file(Symbol_File)
+    symbols, emissions = read_symbol_file(Symbol_File, N)
 
     query_tokens = parse_query_file(Query_File)
 
@@ -31,8 +35,6 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     print('Query tokens id form:', tokens_id)
 
     # Smoothing the transition probabilities
-    N = len(states.keys())
-    print('N is {}'.format(N))
     transition_probabilities = np.array([[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
     for i in range(len(transition_probabilities)):
         for j in range(len(transition_probabilities[0])):
@@ -43,11 +45,11 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
             transition_probabilities[i, j] = (transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
             # transition_probabilities[i, j] = (transitions[i, j]) / (np.sum(transitions[i, :]))
     print('Transition probabilities: ')
-    print(np.matrix(transition_probabilities))
+    print(transition_probabilities)
     # Smoothing the emission probabilities
     # TODO: construct a dict of smoothing probabilities
     M = len(symbols.keys())
-    emission_probabilities = n
+    emission_probabilities = [[0 for _ in range(len(emi))]]
 
     start_probability = {'BEGIN': 1}
 
@@ -87,8 +89,8 @@ def read_state_file(file):
     return state, np.array(frequencies)
 
 
-def read_symbol_file(file):
-    N, i = None, 0
+def read_symbol_file(file, N):
+    M, i = None, 0
     symbols = dict()
     file = open(file, 'r')
     data = file.read().split('\n')
@@ -98,14 +100,14 @@ def read_symbol_file(file):
         if not line:
             continue
         line = line.strip()
-        if N is None:
-            N = int(line)
-        elif N is not None and i < N:
+        if M is None:
+            M = int(line)
+        elif M is not None and i < M:
             symbols[line] = i
             i += 1
         else:
             if frequencies is None:
-                frequencies = [[0 for _ in range(len(symbols.keys()))] for _ in range(len(symbols.keys()))]
+                frequencies = [[0 for _ in range(len(symbols.keys()))] for _ in range(N)]
             f1, f2, f3 = map(int, line.split())
             frequencies[f1][f2] = f3
     return symbols, np.array(frequencies)
