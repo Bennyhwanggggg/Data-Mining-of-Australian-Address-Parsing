@@ -36,12 +36,18 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     transition_probabilities = np.array([[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
     for i in range(len(transition_probabilities)):
         for j in range(len(transition_probabilities[0])):
+            if states[j] == 'BEGIN':  # ignore when state to transition to is 'BEGIN' since there is no transition to it
+                continue
+            if states[i] == 'END':  # ignore when state to transition from is 'END' since there is no transition from it
+                continue
             transition_probabilities[i, j] = (transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
             # transition_probabilities[i, j] = (transitions[i, j]) / (np.sum(transitions[i, :]))
     print('Transition probabilities: ')
     print(np.matrix(transition_probabilities))
     # Smoothing the emission probabilities
     # TODO: construct a dict of smoothing probabilities
+    M = len(symbols.keys())
+    emission_probabilities = n
 
     start_probability = {'BEGIN': 1}
 
