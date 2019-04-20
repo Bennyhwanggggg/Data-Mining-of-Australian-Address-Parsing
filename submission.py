@@ -15,7 +15,9 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     query_tokens = parse_query_file(Query_File)
 
     print('States are:', states)
+    print('Transitions are:', transitions)
     print('Symbols are:', symbols)
+    print('Emissions are:', emissions)
     print('Query tokens are:', query_tokens)
     tokens_id = []
     # Convert each token into symbol IDs
@@ -51,35 +53,48 @@ def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the 
 def read_state_file(file):
     N, i = None, 0
     state = dict()
-    frequencies = dict()
-    with open(file, 'r') as f:
-        for line in f:
-            if N is None:
-                N = int(line)
-            elif N is not None and i < N:
-                state[i] = line.strip()
-                i += 1
-            else:
-                f1, f2, f3 = map(int, line.split())
-                frequencies[f1] = (f2, f3)
+    file = open(file, 'r')
+    data = file.read().split('\n')
+    file.close()
+    frequencies = None
+    for line in data:
+        if not line:
+            continue
+        line = line.strip()
+        if N is None:
+            N = int(line)
+        elif N is not None and i < N:
+            state[i] = line.strip()
+            i += 1
+        else:
+            if frequencies is None:
+                frequencies = [[0 for _ in range(len(state.keys()))] for _ in range(len(state.keys()))]
+            f1, f2, f3 = map(int, line.split())
+            frequencies[f1][f2] = f3
     return state, frequencies
 
 
 def read_symbol_file(file):
     N, i = None, 0
     symbols = dict()
-    frequencies = dict()
-    with open(file, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if N is None:
-                N = int(line)
-            elif N is not None and i < N:
-                symbols[line] = i
-                i += 1
-            else:
-                f1, f2, f3 = map(int, line.split())
-                frequencies[f1] = (f2, f3)
+    file = open(file, 'r')
+    data = file.read().split('\n')
+    file.close()
+    frequencies = None
+    for line in data:
+        if not line:
+            continue
+        line = line.strip()
+        if N is None:
+            N = int(line)
+        elif N is not None and i < N:
+            symbols[line] = i
+            i += 1
+        else:
+            if frequencies is None:
+                frequencies = [[0 for _ in range(len(symbols.keys()))] for _ in range(len(symbols.keys()))]
+            f1, f2, f3 = map(int, line.split())
+            frequencies[f1][f2] = f3
     return symbols, frequencies
 
 
