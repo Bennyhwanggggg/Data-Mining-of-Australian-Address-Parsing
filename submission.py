@@ -1,5 +1,6 @@
 # Import your files here...
 import re
+import numpy as np
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
