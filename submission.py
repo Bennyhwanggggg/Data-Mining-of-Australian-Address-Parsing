@@ -25,7 +25,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     symbols, emissions = read_symbol_file_dict(Symbol_File, N)
     query_tokens = parse_query_file(Query_File)
     print(states, transitions)
-    print(symbols, emissions)
+    sys.exit()
     tokens_id = []
     # Convert each token into symbol IDs
     for query_token in query_tokens:
@@ -38,51 +38,24 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     print(tokens_id)
 
     # Smoothing the transition probabilities
-    # transition_probabilities = np.array([[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
-    # for i in range(len(transition_probabilities)):
-    #     for j in range(len(transition_probabilities[0])):
-    #         if states[j] == 'BEGIN':  # ignore when state to transition to is 'BEGIN' since there is no transition to it
-    #             continue
-    #         if states[i] == 'END':  # ignore when state to transition from is 'END' since there is no transition from it
-    #             continue
-    #         transition_probabilities[i, j] = (transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
-    tran_prob = dict()
-    for state_from in states.keys():
-        if states[state_from] == 'END':
-            continue
-        total_time_seen = sum(transitions[state_from].values())
-        if state_from not in tran_prob.keys():
-            tran_prob[state_from] = dict()
-        for state_to in transitions[state_from].keys():
-            if state_to not in tran_prob[state_from].keys():
-                tran_prob[state_from][state_to] = ((transitions[state_from][state_to] + 1)/(total_time_seen + N -1))
-            else:
-                tran_prob[state_from][state_to] += ((transitions[state_from][state_to] + 1)/(total_time_seen + N -1))
+    transition_probabilities = np.array([[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
+    for i in range(len(transition_probabilities)):
+        for j in range(len(transition_probabilities[0])):
+            if states[j] == 'BEGIN':  # ignore when state to transition to is 'BEGIN' since there is no transition to it
+                continue
+            if states[i] == 'END':  # ignore when state to transition from is 'END' since there is no transition from it
+                continue
+            transition_probabilities[i, j] = (transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
 
     # Smoothing the emission probabilities
     M = len(symbols.keys())+1 # +1 for UNK
-    # emission_probabilities = np.array([[0.0 for _ in range(M)] for _ in range(N)])
-    # for i in range(N):
-    #     for j in range(M):
-    #         if states[i] == 'BEGIN' or states[i] == 'END':
-    #             continue
-    #         emission_probabilities[i, j] = (emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M + 1)
-    emiss_prob = dict()
-    for state in states.keys():
-        if states[state] == 'BEGIN' or states[state] == 'END':
-            continue
-        total_time_seen = sum(emissions[state].values())
-        if state not in emiss_prob:
-            emiss_prob[state] = dict()
-        for sym in symbols.values():
-            if sym not in emiss_prob[state]:
-                emiss_prob[state][sym] = (emissions[state][sym] + 1)/(total_time_seen + M + 1)
-            else:
-                emiss_prob[state][sym] += (emissions[state][sym] + 1)/(total_time_seen + M + 1)
+    emission_probabilities = np.array([[0.0 for _ in range(M)] for _ in range(N)])
+    for i in range(N):
+        for j in range(M):
+            if states[i] == 'BEGIN' or states[i] == 'END':
+                continue
+            emission_probabilities[i, j] = (emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M + 1)
 
-    print(tran_prob)
-    print(emiss_prob)
-    sys.exit()
     # Process each query
     for query in tokens_id:
         # setup T
