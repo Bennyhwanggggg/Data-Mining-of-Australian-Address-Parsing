@@ -1,15 +1,13 @@
 # Import your files here...
 import re
 import numpy as np
-import sys
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
     # Get the states and transitions from the file.
     # The states are of the format: dict[ID]: name
     # transitions are of a matrix format with ID as the indices
-    # states, transitions = read_state_file(State_File)
-    states, transitions = read_state_file_dict(State_File)
+    states, transitions = read_state_file(State_File)
     # find BEGIN and END id
     begin_id, end_id = None, None
     for id in states.keys():
@@ -21,11 +19,8 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     # Get the symbols and emissions from the file.
     # The symbols are of the format: dict[name]: ID
     # emissions are of a matrix format with ID as the indices
-    # symbols, emissions = read_symbol_file(Symbol_File, N)
-    symbols, emissions = read_symbol_file_dict(Symbol_File, N)
+    symbols, emissions = read_symbol_file(Symbol_File, N)
     query_tokens = parse_query_file(Query_File)
-    print(states, transitions)
-    sys.exit()
     tokens_id = []
     # Convert each token into symbol IDs
     for query_token in query_tokens:
@@ -68,32 +63,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
         # Base case from starting state
         for state in states.keys():
             # initial_probabilities is transition_probabilities[begin_id, :], emission_probabilities[state, query[0]] is the probability of emission from a state to first observation
-            # T1[state, begin_id] = transition_probabilities[begin_id, state]*emission_probabilities[state, query[0]]
-            curr_pro[state] = transition_probabilities[begin_id, state]*emission_probabilities[state][query[0]]
-        print(curr_pro)
-
+            T1[state, begin_id] = transition_probabilities[begin_id, state]*emission_probabilities[state, query[0]]
         prev = begin_id
         for i in range(len(query)):
             observation = query[i]
-            last_pro = curr_pro
-            curr_pro = {}
             for state in states.keys():
-                max_prob, last_state = max([(last_pro[k] * 
-                                            transition_probabilities[k, state] * 
-                                            emission_probabilities[state, observation], k) for k in states.keys()])
-                curr_pro[state] = max_prob
-                path[state].append(last_state)
-            print(curr_pro)
-            print(path)
+                T1[state, observation], T2[state, observation] = max([(T1[k, prev] * 
+                                                                       transition_probabilities[k, state] * 
+                                                                       emission_probabilities[state, observation], k) for k in states.keys()])
             prev = observation
-        # prev = begin_id
-        # for i in range(len(query)):
-        #     observation = query[i]
-        #     for state in states.keys():
-        #         T1[state, observation], T2[state, observation] = max([(T1[k, prev] * 
-        #                                                                transition_probabilities[k, state] * 
-        #                                                                emission_probabilities[state, observation], k) for k in states.keys()])
-        #     prev = observation
 
 
 
@@ -137,36 +115,6 @@ def read_state_file(file):
     return state, np.array(frequencies)
 
 
-def read_state_file_dict(file):
-    N, i = None, 0
-    state = dict()
-    file = open(file, 'r')
-    data = file.read().split('\n')
-    file.close()
-    frequencies = None
-    for line in data:
-        if not line:
-            continue
-        line = line.strip()
-        if N is None:
-            N = int(line)
-        elif N is not None and i < N:
-            state[i] = line.strip()
-            i += 1
-        else:
-            if frequencies is None:
-                frequencies = dict()
-            f1, f2, f3 = map(int, line.split())
-            if f1 not in frequencies.keys():
-                frequencies[f1] = {f2: f3}
-            else:
-                if f2 not in frequencies[f1].keys():
-                    frequencies[f1][f2] = f3
-                else:
-                    frequencies[f1][f2] += f3
-    return state, frequencies
-
-
 def read_symbol_file(file, N):
     M, i = None, 0
     symbols = dict()
@@ -185,40 +133,10 @@ def read_symbol_file(file, N):
             i += 1
         else:
             if frequencies is None:
-                frequencies = dict()
+                frequencies = [[0 for _ in range(len(symbols.keys())+1)] for _ in range(N)]
             f1, f2, f3 = map(int, line.split())
             frequencies[f1][f2] = f3
-    return symbols, frequencies
-
-
-def read_symbol_file_dict(file, N):
-    M, i = None, 0
-    symbols = dict()
-    file = open(file, 'r')
-    data = file.read().split('\n')
-    file.close()
-    frequencies = None
-    for line in data:
-        if not line:
-            continue
-        line = line.strip()
-        if M is None:
-            M = int(line)
-        elif M is not None and i < M:
-            symbols[line] = i
-            i += 1
-        else:
-            if frequencies is None:
-                frequencies = dict()
-            f1, f2, f3 = map(int, line.split())
-            if f1 not in frequencies.keys():
-                frequencies[f1] = {f2: f3}
-            else:
-                if f2 not in frequencies[f1].keys():
-                    frequencies[f1][f2] = f3
-                else:
-                    frequencies[f1][f2] += f3
-    return symbols, frequencies
+    return symbols, np.array(frequencies)
 
 
 def parse_query_file(file):
