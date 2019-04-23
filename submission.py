@@ -2,6 +2,7 @@
 import re
 import numpy as np
 import math
+from pprint import pprint
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
@@ -19,15 +20,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
 
     # Get the symbols and emissions from the file. 
     symbols, emissions = read_symbol_file(Symbol_File, N)
-    query_tokens = parse_query_file(Query_File)
-    tokens_id = []
+    query_list = parse_query_file(Query_File)
+    query_list_in_id = []
     # Convert each token into symbol IDs
-    for query_token in query_tokens:
+    for query_token in query_list:
         tk = []
         for token in query_token:       
             symbol_id = symbols[token] if token in symbols.keys() else len(symbols.keys())  # Give UNK the last id
             tk.append(symbol_id)
-        tokens_id.append(tk)
+        query_list_in_id.append(tk)
 
     # Smoothing the transition probabilities
     transition_probabilities = np.array([[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
@@ -51,7 +52,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
             emission_probabilities[i, j] = (emissions[i, j] + 1) / (np.sum(transitions[i, :]) + M + 1)
 
     # Process each query
-    for query in tokens_id:
+    for query in query_list_in_id:
         # setup dp
         T1 = np.array([[0.0 for _ in range(len(query)+2)] for _ in range(N)])
         T2 = np.array([[0.0 for _ in range(len(query)+2)] for _ in range(N)])
@@ -72,8 +73,8 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
         for state in states.keys():
             T1[state, -1], T2[state, -1] = max([(T1[k, prev] * 
                                                transition_probabilities[k, state], k) for k in states.keys()])
-        print(T1)
-        print(T2)
+        pprint(T1)
+        pprint(T2)
         # backtract to get path?
         path = []
         current = int(T2[np.argmax(T1[:, -1]), -1])
@@ -82,13 +83,13 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
             if i == 0:
                 path.append(begin_id)
                 continue
-            print(current)
+            pprint(current)
             current = int(T2[current, i])
             path.append(current)
             # current = next_path
             # print(path, i, next_path)
         path.reverse()
-        print(path)
+        pprint(path)
         import sys
         sys.exit()
 
@@ -166,11 +167,13 @@ def parse_query_file(file):
             tokens.append(token)
     return tokens
 
-
-if __name__ == '__main__':
-
+def main():
     # Question 1
     State_File ='./toy_example/State_File'
     Symbol_File='./toy_example/Symbol_File'
     Query_File ='./toy_example/Query_File'
     viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    return viterbi_result
+
+if __name__ == "__main__":
+    main()
