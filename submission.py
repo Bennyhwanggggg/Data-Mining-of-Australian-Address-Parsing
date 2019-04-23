@@ -73,7 +73,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
         T2 = np.array([[0.0 for _ in range(len(query)+2)] for _ in range(N)])
 
         # starting transition probabilities
-        T1[:, 0] = transition_probabilities[begin_id, :]
+        T1[:, 0] = np.log(transition_probabilities[begin_id, :])
         T2[:, 0] = begin_id
         prev = 0
 
@@ -82,27 +82,29 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             obs = query[i-1]
             for cur_state in states.keys():
                 if states[cur_state] in ('BEGIN', 'END'): continue
-                T1[cur_state, i], T2[cur_state, i] = max([(T1[last_state, prev] *
-                                                           transition_probabilities[last_state, cur_state] *
-                                                           emission_probabilities[cur_state, obs],
+                T1[cur_state, i], T2[cur_state, i] = max([(T1[last_state, prev] +
+                                                           math.log(transition_probabilities[last_state, cur_state]) +
+                                                           math.log(emission_probabilities[cur_state, obs]),
                                                            last_state)
-                                                          for last_state in states.keys()])
+                                                          for last_state in states.keys() if states[last_state] not in ('BEGIN', 'END')])
             prev = i
         # transite to END?
-        for state in states.keys():
-            T1[state, -1], T2[state, -1] = max([(T1[k, prev] * transition_probabilities[k, state], k)
-                                                for k in states.keys()])
+        for last_state in states.keys():
+            if states[last_state] in ('BEGIN', 'END'): continue
+            T1[last_state, -1], T2[last_state, -1] = T1[last_state, prev] + math.log(transition_probabilities[last_state, end_id]), last_state
+                                          
         print("dp table:")
         pprint(T1)
         print("come from table:")
         pprint(T2)
 
         # backtract to get path?
+        # print("debug", np.argmax(T1[:-2, -1]))
         path = []
-        score = max(T1[:, -1])
-        current = int(T2[np.argmax(T1[:, -1]), -1])
+        score = max(T1[:-2, -1])
+        current = int(T2[np.argmax(T1[:-2, -1]), -1])
         path.append(end_id)
-        for i in range(len(T1[0])-1, -1, -1):
+        for i in range(len(T2[0])-2, -1, -1):
             if i == 0:
                 path.append(begin_id)
                 break
@@ -114,9 +116,9 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
         path.reverse()
         print("path is")
         pprint(path)
-        path.append(math.log(score))
+        path.append(score)
         ret.append(path)
-    return ret
+        return ret
 
 
 # Question 2
