@@ -46,51 +46,55 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     emission_probabilities = np.array([[0.0 for _ in range(M)] for _ in range(N)])
     for i in range(N):
         for j in range(M):
-            if states[i] == 'BEGIN' or states[i] == 'END':
-                continue
-            emission_probabilities[i, j] = (emissions[i, j] + 1) / (np.sum(transitions[i, :]) + M + 1)
+            # if states[i] == 'BEGIN' or states[i] == 'END':
+            #     continue
+            emission_probabilities[i, j] = (emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M)
 
     # Process each query
     for query in tokens_id:
         # setup dp
         T1 = np.array([[0.0 for _ in range(len(query)+2)] for _ in range(N)])
-        T2 = np.array([[0.0 for _ in range(len(query)+2)] for _ in range(N)])
+        T2 = np.array([[0.0 for _ in range(len(query))] for _ in range(N)])
 
         # starting transition probabilities
-        T1[:, 0] = transition_probabilities[begin_id, :]
-        T2[:, 0] = begin_id
+        T1[:, 0] = np.log(transition_probabilities[begin_id, :])
+        # T2[:, 0] = begin_id
         prev = 0
-
+        print(T1)
         for i in range(1, len(query)+1):
             obs = query[i-1]
             for state in states.keys():
-                T1[state, i], T2[state, i] = max([(T1[k, prev] * 
-                                                   transition_probabilities[k, state] * 
-                                                   emission_probabilities[state, obs], k) for k in states.keys()])
+                if states[state] == 'BEGIN' or states[state] == 'END':
+                    continue
+                T1[state, i], T2[state, i-1] = max([(math.log(T1[k, prev]) + 
+                                                   math.log(transition_probabilities[k, state]) * 
+                                                   math.log(emission_probabilities[state, obs]), k) for k in states.keys() if states[k] != 'BEGIN' or states[k] != 'END'])
             prev = i
         # transite to END?
+        print(prev)
         for state in states.keys():
-            T1[state, -1], T2[state, -1] = max([(T1[k, prev] * 
-                                               transition_probabilities[k, state], k) for k in states.keys()])
+            # T1[state, -1], T2[state, -1] = max([(T1[state, prev] * 
+            #                                     transition_probabilities[state, end_id], k) for k in states.keys()])
+            T1[state, -1] = T1[state, prev] * transition_probabilities[state, end_id]
+        np.set_printoptions(precision=3)
         print(T1)
         print(T2)
-        # backtract to get path?
-        path = []
-        current = int(T2[np.argmax(T1[:, -1]), -1])
-        path.append(end_id)
-        for i in range(len(T1[0])-1, -1, -1):
-            if i == 0:
-                path.append(begin_id)
-                continue
-            print(current)
-            current = int(T2[current, i])
-            path.append(current)
-            # current = next_path
-            # print(path, i, next_path)
+        # backtrack
+        path = [end_id]
+        max_end = int(np.argmax(T1[:, -2]))
+        max_prob = np.argmax(T1[:, -2])
+        print(max_prob)
+        print(T1[max_prob, -2])
+        print(math.log(T1[max_prob, -2]))
+        path.append(max_end)
+        for i in range(T2.shape[1]-1, 0, -1):
+            path.append(int(T2[max_end, i]))
+            max_end = int(T2[max_end, i])
+        path.append(begin_id)
         path.reverse()
         print(path)
-        import sys
-        sys.exit()
+
+
 
 # Question 2
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
