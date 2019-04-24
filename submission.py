@@ -82,19 +82,13 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
         for i in range(1, len(query)+1):
             # i is used for index the column of dp table
             obs = query[i-1]
-            if i == 1:
-                for cur_state in states.keys():
-                    if states[cur_state] not in ('BEGIN', 'END'):
-                        T1[cur_state, i], T2[cur_state, i] = max([(T1[k, prev] + \
-                                                                math.log(emission_probabilities[cur_state, obs]), begin_id) for k in states.keys() if states[k] not in ('BEGIN', 'END')])
-            else:
-                for cur_state in states.keys():
-                    if states[cur_state] in ('BEGIN', 'END'): continue
-                    T1[cur_state, i], T2[cur_state, i] = max([(T1[last_state, prev] +
-                                                               math.log(transition_probabilities[last_state, cur_state]) +
-                                                               math.log(emission_probabilities[cur_state, obs]),
-                                                               last_state)
-                                                              for last_state in states.keys() if states[last_state] not in ('BEGIN', 'END')])
+            for cur_state in states.keys():
+                if states[cur_state] in ('BEGIN', 'END'): continue
+                T1[cur_state, i], T2[cur_state, i] = max([(T1[last_state, prev] +
+                                                            (math.log(transition_probabilities[last_state, cur_state]) if i != 1 else 0) +
+                                                            math.log(emission_probabilities[cur_state, obs]),
+                                                            last_state)
+                                                            for last_state in states.keys() if states[last_state] not in ('BEGIN', 'END')])
             prev = i
         for last_state in states.keys():
             if states[last_state] in ('BEGIN', 'END'): continue
@@ -119,7 +113,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
         path.append(score)
         print(path)
         ret.append(path)
-        return ret
+    return ret
 
 
 # Question 2
@@ -204,15 +198,15 @@ def parse_query_file(file):
 
 
 def main():
-    # Question 1
-    State_File = './dev_set/State_File'
-    Symbol_File = './dev_set/Symbol_File'
-    Query_File = './dev_set/Query_File'
+    # # Question 1
+    # State_File = './dev_set/State_File'
+    # Symbol_File = './dev_set/Symbol_File'
+    # Query_File = './dev_set/Query_File'
     # for i in parse_query_file(Query_File):
     #     print(i)
-    # State_File = './toy_example/State_File'
-    # Symbol_File = './toy_example/Symbol_File'
-    # Query_File = './toy_example/Query_File'
+    State_File = './toy_example/State_File'
+    Symbol_File = './toy_example/Symbol_File'
+    Query_File = './toy_example/Query_File'
     viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
     return viterbi_result
 
