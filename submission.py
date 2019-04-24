@@ -4,11 +4,9 @@ import numpy as np
 import math
 from pprint import pprint
 
-# Question 1
-
-
-# do not change the heading of the function
+# Question 1 # do not change the heading of the function
 def viterbi_algorithm(State_File, Symbol_File, Query_File):
+    np.seterr(divide='ignore')
     # Get the states and transitions from the file.
     states, transitions = read_state_file(State_File)
 
@@ -32,10 +30,10 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             symbol_id = symbols[token] if token in symbols.keys() else len(
                 symbols.keys())  # Give UNK the last id
             tk.append(symbol_id)
+        print(query_in_token)
+        print(tk)
         query_list_in_id.append(tk)
 
-    pprint(transitions)
-    pprint(emissions)
 
     # Smoothing the transition probabilities
     transition_probabilities = np.array(
@@ -48,16 +46,13 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             # ignore when state to transition from is 'END' since there is no transition from it
             if states[i] == 'END':
                 continue
-            # cannot go from begin to end straight away?
+            # cannot go from begin to end straight away
             if states[i] == 'BEGIN' and states[j] == 'END':
                 continue
-            # if states[i] == 'BEGIN':
-            #     transition_probabilities[i, j] = 1 / (np.sum(transitions[i, :]) + N - 1)
-            #     continue
             transition_probabilities[i, j] = (
                 transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
 
-    # transition_probabilities = transition_probabilities[:-1, :]
+    transition_probabilities = transition_probabilities[:-1, :]
 
     # Smoothing the emission probabilities
     M = len(symbols.keys())+1  # +1 for UNK
@@ -69,26 +64,19 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
                 continue
             emission_probabilities[i, j] = (
                 emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M)
-    # return query_list_in_id, transition_probabilities, emission_probabilities, states # debug with ipython
-    # return locals()
 
-    # emission_probabilities = emission_probabilities[:-2, :]
-
-    pprint(transition_probabilities)
-    pprint(emission_probabilities)
+    emission_probabilities = emission_probabilities[:-2, :]
 
     # Process each query
-    np.set_printoptions(precision=3)
+    np.set_printoptions(precision=0)
     ret = []
     for query in query_list_in_id:
         # setup dp
         T1 = np.array([[0.0 for _ in range(len(query)+2)] for _ in range(N)])
         T2 = np.array([[0.0 for _ in range(len(query)+2)] for _ in range(N)])
 
-        # starting transition probabilities
         T1[:, 0] = np.log(transition_probabilities[begin_id, :])
-        T2[:, 0] = begin_id
-        pprint(T1)
+        # T2[:, 0] = begin_id
         prev = 0
 
         for i in range(1, len(query)+1):
@@ -99,7 +87,6 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
                     if states[cur_state] not in ('BEGIN', 'END'):
                         T1[cur_state, i], T2[cur_state, i] = max([(T1[k, prev] + \
                                                                 math.log(emission_probabilities[cur_state, obs]), begin_id) for k in states.keys() if states[k] not in ('BEGIN', 'END')])
-                        print('{} + {} + {}'.format(T1[cur_state, prev], transition_probabilities[begin_id, cur_state], emission_probabilities[cur_state, obs]))
             else:
                 for cur_state in states.keys():
                     if states[cur_state] in ('BEGIN', 'END'): continue
@@ -108,24 +95,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
                                                                math.log(emission_probabilities[cur_state, obs]),
                                                                last_state)
                                                               for last_state in states.keys() if states[last_state] not in ('BEGIN', 'END')])
-                    # for last_state in states.keys():
-                    #     if states[last_state] not in ('BEGIN', 'END'):
-                    #         print('{} + {} + {}'.format(T1[last_state, prev], transition_probabilities[last_state, cur_state], emission_probabilities[cur_state, obs]))
-                    # input()
             prev = i
-        # transite to END?
-        pprint(T1)
         for last_state in states.keys():
             if states[last_state] in ('BEGIN', 'END'): continue
             T1[last_state, -1], T2[last_state, -1] = T1[last_state, prev] + math.log(transition_probabilities[last_state, end_id]), last_state
-                                          
-        print("dp table:")
+
         pprint(T1)
-        print("come from table:")
+        print(T2.shape)
         pprint(T2)
 
-        # backtract to get path?
-        # print("debug", np.argmax(T1[:-2, -1]))
         path = []
         score = max(T1[:-2, -1])
         current = int(T2[np.argmax(T1[:-2, -1]), -1])
@@ -134,17 +112,14 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             if i == 0:
                 path.append(begin_id)
                 break
-            pprint(current)
+            print(i, current)
             path.append(current)
             current = int(T2[current, i])
-            # current = next_path
-            # print(path, i, next_path)
         path.reverse()
         path.append(score)
-        print("path is")
-        pprint(path)
+        print(path)
         ret.append(path)
-    return ret
+        return ret
 
 
 # Question 2
@@ -212,7 +187,7 @@ def read_symbol_file(file, N):
 
 
 def parse_query_file(file):
-    delimiters = '*,()/-&'
+    delimiters = ',()/-&'
     tokens = []
     with open(file, 'r') as f:
         for line in f:
@@ -220,7 +195,7 @@ def parse_query_file(file):
             token = []
             queries = line.split()
             for q in queries:
-                tk = re.split(r'(\*|\,|\(|\)|\/|-|\&)', q)
+                tk = re.split(r'(\,|\(|\)|\/|-|\&)', q)
                 for t in tk:
                     if t != '':
                         token.append(t)
@@ -230,9 +205,14 @@ def parse_query_file(file):
 
 def main():
     # Question 1
-    State_File = './toy_example/State_File'
-    Symbol_File = './toy_example/Symbol_File'
-    Query_File = './toy_example/Query_File'
+    State_File = './dev_set/State_File'
+    Symbol_File = './dev_set/Symbol_File'
+    Query_File = './dev_set/Query_File'
+    # for i in parse_query_file(Query_File):
+    #     print(i)
+    # State_File = './toy_example/State_File'
+    # Symbol_File = './toy_example/Symbol_File'
+    # Query_File = './toy_example/Query_File'
     viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
     return viterbi_result
 
