@@ -34,6 +34,9 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             tk.append(symbol_id)
         query_list_in_id.append(tk)
 
+    pprint(transitions)
+    pprint(emissions)
+
     # Smoothing the transition probabilities
     transition_probabilities = np.array(
         [[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
@@ -48,8 +51,13 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             # cannot go from begin to end straight away?
             if states[i] == 'BEGIN' and states[j] == 'END':
                 continue
+            # if states[i] == 'BEGIN':
+            #     transition_probabilities[i, j] = 1 / (np.sum(transitions[i, :]) + N - 1)
+            #     continue
             transition_probabilities[i, j] = (
                 transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
+
+    # transition_probabilities = transition_probabilities[:-1, :]
 
     # Smoothing the emission probabilities
     M = len(symbols.keys())+1  # +1 for UNK
@@ -64,8 +72,13 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
     # return query_list_in_id, transition_probabilities, emission_probabilities, states # debug with ipython
     # return locals()
 
+    # emission_probabilities = emission_probabilities[:-2, :]
+
+    pprint(transition_probabilities)
+    pprint(emission_probabilities)
+
     # Process each query
-    # np.set_printoptions(precision=3)
+    np.set_printoptions(precision=3)
     ret = []
     for query in query_list_in_id:
         # setup dp
@@ -75,20 +88,33 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
         # starting transition probabilities
         T1[:, 0] = np.log(transition_probabilities[begin_id, :])
         T2[:, 0] = begin_id
+        pprint(T1)
         prev = 0
 
         for i in range(1, len(query)+1):
             # i is used for index the column of dp table
             obs = query[i-1]
-            for cur_state in states.keys():
-                if states[cur_state] in ('BEGIN', 'END'): continue
-                T1[cur_state, i], T2[cur_state, i] = max([(T1[last_state, prev] +
-                                                           math.log(transition_probabilities[last_state, cur_state]) +
-                                                           math.log(emission_probabilities[cur_state, obs]),
-                                                           last_state)
-                                                          for last_state in states.keys() if states[last_state] not in ('BEGIN', 'END')])
+            if i == 1:
+                for cur_state in states.keys():
+                    if states[cur_state] not in ('BEGIN', 'END'):
+                        T1[cur_state, i], T2[cur_state, i] = max([(T1[k, prev] + \
+                                                                math.log(emission_probabilities[cur_state, obs]), begin_id) for k in states.keys() if states[k] not in ('BEGIN', 'END')])
+                        print('{} + {} + {}'.format(T1[cur_state, prev], transition_probabilities[begin_id, cur_state], emission_probabilities[cur_state, obs]))
+            else:
+                for cur_state in states.keys():
+                    if states[cur_state] in ('BEGIN', 'END'): continue
+                    T1[cur_state, i], T2[cur_state, i] = max([(T1[last_state, prev] +
+                                                               math.log(transition_probabilities[last_state, cur_state]) +
+                                                               math.log(emission_probabilities[cur_state, obs]),
+                                                               last_state)
+                                                              for last_state in states.keys() if states[last_state] not in ('BEGIN', 'END')])
+                    # for last_state in states.keys():
+                    #     if states[last_state] not in ('BEGIN', 'END'):
+                    #         print('{} + {} + {}'.format(T1[last_state, prev], transition_probabilities[last_state, cur_state], emission_probabilities[cur_state, obs]))
+                    # input()
             prev = i
         # transite to END?
+        pprint(T1)
         for last_state in states.keys():
             if states[last_state] in ('BEGIN', 'END'): continue
             T1[last_state, -1], T2[last_state, -1] = T1[last_state, prev] + math.log(transition_probabilities[last_state, end_id]), last_state
@@ -114,11 +140,11 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             # current = next_path
             # print(path, i, next_path)
         path.reverse()
+        path.append(score)
         print("path is")
         pprint(path)
-        path.append(score)
         ret.append(path)
-        return ret
+    return ret
 
 
 # Question 2
