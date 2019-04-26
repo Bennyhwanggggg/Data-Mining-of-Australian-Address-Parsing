@@ -199,14 +199,14 @@ def parse_query_file(file):
 
 def main():
     # # Question 1
-    # State_File = './dev_set/State_File'
-    # Symbol_File = './dev_set/Symbol_File'
-    # Query_File = './dev_set/Query_File'
+    State_File = './dev_set/State_File'
+    Symbol_File = './dev_set/Symbol_File'
+    Query_File = './dev_set/Query_File'
     # for i in parse_query_file(Query_File):
     #     print(i)
-    State_File = './toy_example/State_File'
-    Symbol_File = './toy_example/Symbol_File'
-    Query_File = './toy_example/Query_File'
+    # State_File = './toy_example/State_File'
+    # Symbol_File = './toy_example/Symbol_File'
+    # Query_File = './toy_example/Query_File'
     viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
     return viterbi_result
 
