@@ -30,8 +30,8 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             symbol_id = symbols[token] if token in symbols.keys() else len(
                 symbols.keys())  # Give UNK the last id
             tk.append(symbol_id)
-        print(query_in_token)
-        print(tk)
+        # print(query_in_token)
+        # print(tk)
         query_list_in_id.append(tk)
 
 
@@ -84,19 +84,22 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             obs = query[i-1]
             for cur_state in states.keys():
                 if states[cur_state] in ('BEGIN', 'END'): continue
-                T1[cur_state, i], T2[cur_state, i] = max([(T1[last_state, prev] +
-                                                            (math.log(transition_probabilities[last_state, cur_state]) if i != 1 else 0) +
-                                                            math.log(emission_probabilities[cur_state, obs]),
-                                                            last_state)
-                                                            for last_state in states.keys() if states[last_state] not in ('BEGIN', 'END')])
+                if i == 1:
+                    T1[cur_state, i], T2[cur_state, i] = (T1[cur_state, 0] + math.log(emission_probabilities[cur_state, obs])), begin_id
+                else:
+                    T1[cur_state, i], T2[cur_state, i] = max([(T1[last_state, prev] +
+                                                                math.log(transition_probabilities[last_state, cur_state]) +
+                                                                math.log(emission_probabilities[cur_state, obs]),
+                                                                last_state)
+                                                                for last_state in states.keys() if states[last_state] not in ('BEGIN', 'END')])
             prev = i
         for last_state in states.keys():
             if states[last_state] in ('BEGIN', 'END'): continue
             T1[last_state, -1], T2[last_state, -1] = T1[last_state, prev] + math.log(transition_probabilities[last_state, end_id]), last_state
 
-        pprint(T1)
-        print(T2.shape)
-        pprint(T2)
+        # pprint(T1)
+        # print(T2.shape)
+        # pprint(T2)
 
         path = []
         score = max(T1[:-2, -1])
@@ -106,12 +109,12 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             if i == 0:
                 path.append(begin_id)
                 break
-            print(i, current)
+            # print(i, current)
             path.append(current)
             current = int(T2[current, i])
         path.reverse()
         path.append(score)
-        print(path)
+        # print(path)
         ret.append(path)
     return ret
 
@@ -198,7 +201,7 @@ def parse_query_file(file):
 
 
 def main():
-    # # Question 1
+    # Question 1
     State_File = './dev_set/State_File'
     Symbol_File = './dev_set/Symbol_File'
     Query_File = './dev_set/Query_File'
