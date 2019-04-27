@@ -1,11 +1,24 @@
-# Import your files here...
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import re
 import numpy as np
 import math
 from pprint import pprint
 
-# Question 1 # do not change the heading of the function
+def _get_k_largest(lst, k):
+    """ return the k largest value and their index, reversed order
+    :lst: a indexible list
+    :k: num
+    """
+    sorted_lst = sorted([(val, index) for index, val in enumerate(lst)])
+    return list(reversed(sorted_lst[-k:]))
+
 def viterbi_algorithm(State_File, Symbol_File, Query_File):
+    return viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k=1)
+
+# Question 1 # do not change the heading of the function
+def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
     np.seterr(divide='ignore')
     # Get the states and transitions from the file.
     states, transitions = read_state_file(State_File)
@@ -68,7 +81,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
     emission_probabilities = emission_probabilities[:-2, :]
 
     # Process each query
-    np.set_printoptions(precision=0)
+    np.set_printoptions(precision=5)
     ret = []
     for query in query_list_in_id:
         # setup dp
@@ -101,21 +114,24 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
         # print(T2.shape)
         # pprint(T2)
 
-        path = []
-        score = max(T1[:-2, -1])
-        current = int(T2[np.argmax(T1[:-2, -1]), -1])
-        path.append(end_id)
-        for i in range(len(T2[0])-2, -1, -1):
-            if i == 0:
-                path.append(begin_id)
-                break
-            # print(i, current)
-            path.append(current)
-            current = int(T2[current, i])
-        path.reverse()
-        path.append(score)
-        # print(path)
-        ret.append(path)
+        last_column = T1[:-2, -1]
+        # print(last_column)
+        for val, index in _get_k_largest(last_column, k):
+            path = []
+            score = val
+            current = int(T2[index, -1])
+            path.append(end_id)
+            for i in range(len(T2[0])-2, -1, -1):
+                if i == 0:
+                    path.append(begin_id)
+                    break
+                # print(i, current)
+                path.append(current)
+                current = int(T2[current, i])
+            path.reverse()
+            path.append(score)
+            # print(path)
+            ret.append(path)
     return ret
 
 
@@ -124,14 +140,13 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
 
 # do not change the heading of the function
 def top_k_viterbi(State_File, Symbol_File, Query_File, k):
-    pass  # Replace this line with your implementation...
+    return viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k=k)
 
 
 # Question 3 + Bonus
 # do not change the heading of the function
 def advanced_decoding(State_File, Symbol_File, Query_File):
     pass  # Replace this line with your implementation...
-
 
 def read_state_file(file):
     N, i = None, 0
@@ -207,12 +222,15 @@ def main():
     Query_File = './dev_set/Query_File'
     # for i in parse_query_file(Query_File):
     #     print(i)
-    # State_File = './toy_example/State_File'
-    # Symbol_File = './toy_example/Symbol_File'
-    # Query_File = './toy_example/Query_File'
-    viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
-    return viterbi_result
+    toy_State_File = './toy_example/State_File'
+    toy_Symbol_File = './toy_example/Symbol_File'
+    toy_Query_File = './toy_example/Query_File'
+    # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    # top_k_res = top_k_viterbi(State_File, Symbol_File, Query_File, 3)
+    top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 3)
+    return top_k_res
 
 
 if __name__ == "__main__":
     main()
+
