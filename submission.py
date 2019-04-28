@@ -201,7 +201,7 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
     for query in query_list_in_id:
         # setup dp
         T1 = np.array([[[0.0 for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
-        T2 = np.array([[[(0.0, 0.0) for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
+        T2 = np.array([[[(0, 0) for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
 
         for i in range(topk):
             T1[:, 0, i] = np.log(transition_probabilities[begin_id, :])
@@ -214,7 +214,8 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                 if states[cur_state] in ('BEGIN', 'END'): continue
                 if i == 1:
                     for k in range(topk):
-                        T1[cur_state, i, k], T2[cur_state, i, k] = (T1[cur_state, 0, k] + math.log(emission_probabilities[cur_state, obs])), begin_id
+                        T1[cur_state, i, k], T2[cur_state, i, k] = (T1[cur_state, 0, k] + math.log(emission_probabilities[cur_state, obs])), (begin_id, 0)
+
                 else:
                     # Best_K_Values(t, i) = Top K over all i,preceding_state,k (emissions[i][o_t] * m[preceding_state][k] * transition[preceding_state][i])
                     temp = []
@@ -235,9 +236,10 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
         for last_state in states.keys():
             if states[last_state] in ('BEGIN', 'END'): continue
             for k in range(topk):
-                T1[last_state, -1, k], T2[last_state, -1, k] = T1[last_state, prev, k] + math.log(transition_probabilities[last_state, end_id]), last_state
+                T1[last_state, -1, k], T2[last_state, -1, k] = T1[last_state, prev, k] + math.log(transition_probabilities[last_state, end_id]), (last_state, k)
 
-        pprint(T1)
+        # pprint(T1)
+        # print('T2 is')
         # pprint(T2)
 
         last_slice = T1[:-2, -1, :]
@@ -254,33 +256,14 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                 if i == 0:
                     path.append(begin_id)
                     break
+                # print(current)
                 last_state, last_k = int(current[0]), int(current[1])
                 path.append(last_state)
                 current = T2[last_state, i, last_k]
             path.reverse()
             path.append(top_i_prob)
             ret.append(path)
-    pprint(ret)
-
-
-
-    #     for val, index in _get_k_largest(last_column, k):
-    #         path = []
-    #         score = val
-    #         current = int(T2[index, -1])
-    #         path.append(end_id)
-    #         for i in range(len(T2[0])-2, -1, -1):
-    #             if i == 0:
-    #                 path.append(begin_id)
-    #                 break
-    #             # print(i, current)
-    #             path.append(current)
-    #             current = int(T2[current, i])
-    #         path.reverse()
-    #         path.append(score)
-    #         # print(path)
-    #         ret.append(path)
-    # return ret
+    return ret
 
 
 # Question 3 + Bonus
@@ -367,9 +350,9 @@ def main():
     toy_Query_File = './toy_example/Query_File'
     # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
     # top_k_res = top_k_viterbi(State_File, Symbol_File, Query_File, 3)
-    top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 3)
-    # for i in top_k_res:
-    #     print(i)
+    top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 2)
+    for i in top_k_res:
+        print(i)
 
 
 if __name__ == "__main__":
