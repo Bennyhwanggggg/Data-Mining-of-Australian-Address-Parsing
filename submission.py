@@ -201,7 +201,7 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
     for query in query_list_in_id:
         # setup dp
         T1 = np.array([[[0.0 for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
-        T2 = np.array([[[0.0 for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
+        T2 = np.array([[[(0.0, 0.0) for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
 
         for i in range(topk):
             T1[:, 0, i] = np.log(transition_probabilities[begin_id, :])
@@ -225,11 +225,11 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                             p = T1[last_state, prev, k] + \
                                 math.log(transition_probabilities[last_state, cur_state]) + \
                                 math.log(emission_probabilities[cur_state, obs])
-                            if [p, last_state] not in temp:
-                                temp.append([p, last_state])
+                            if not temp or not any([p, last_state] == [tmp[0], tmp[1]] for tmp in temp):
+                                temp.append([p, last_state, k])
                     temp = sorted(temp, key=lambda ele: ele[0], reverse=True)
                     T1[cur_state, i, :] = [tmp[0] for tmp in temp[:topk]]
-                    T2[cur_state, i, :] = [tmp[1] for tmp in temp[:topk]]
+                    T2[cur_state, i, :] = [(tmp[1], tmp[2]) for tmp in temp[:topk]]
             prev = i
 
         for last_state in states.keys():
@@ -238,25 +238,31 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                 T1[last_state, -1, k], T2[last_state, -1, k] = T1[last_state, prev, k] + math.log(transition_probabilities[last_state, end_id]), last_state
 
         pprint(T1)
-        pprint(T2)
+        # pprint(T2)
 
         last_slice = T1[:-2, -1, :]
-        print(last_slice)
+        # print(last_slice)
         top_k_indexes = top_n_indexes(last_slice, topk)
         top_k_results = sorted([(last_slice[i, j], (i, j)) for i, j in top_k_indexes], key=lambda ele: ele[0], reverse=True)
-        print(top_k_results)
+        # print(top_k_results)
         for top_i_prob, top_i_end in top_k_results:
             path = []
             path.append(end_id)
             i, j = top_i_end
-            current = int(T2[i, -1, j])
-            print(current)
-            # for i in range(len(T2[0])-2, -1, -1):
-            #     if i == 1:
-            #         path.append(begin_id)
-            #         break
-            #     path.append(current)
-                
+            current = T2[i, -1, j]
+            for i in range(len(T2[0])-2, -1, -1):
+                if i == 1:
+                    path.append(begin_id)
+                    break
+                last_state, last_k = int(current[0]), int(current[1])
+                path.append(last_state)
+                current = T2[last_state, i, last_k]
+            path.reverse()
+            path.append(top_i_prob)
+            ret.append(path)
+    pprint(ret)
+
+
 
     #     for val, index in _get_k_largest(last_column, k):
     #         path = []
