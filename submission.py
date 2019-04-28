@@ -245,7 +245,8 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
         # pprint(T2)
 
         last_slice = T1[:-2, -1, :]
-        top_k_indexes = top_n_indexes(last_slice, last_slice.shape[0] * last_slice.shape[1])
+        print(last_slice)
+        top_k_indexes = top_n_indexes(last_slice, topk)
         top_k_results = sorted([(last_slice[i, j], (i, j)) for i, j in top_k_indexes], key=lambda ele: ele[0], reverse=True)
         current_ret = []
         for top_i_prob, top_i_end in top_k_results:
@@ -264,7 +265,7 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
             path.append(top_i_prob)
             current_ret.append(path)
         current_ret = sorted(current_ret, key=lambda x: (-x[-1], [x[a] for a in range(len(x)-1, -1, -1)]))
-        ret.extend(current_ret[:topk])
+        ret.extend(current_ret)
     return ret
 
 
