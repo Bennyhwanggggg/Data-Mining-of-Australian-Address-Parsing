@@ -229,8 +229,10 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                             if not temp or not any([p, last_state] == [tmp[0], tmp[1]] for tmp in temp):
                                 temp.append([p, last_state, k])
                     temp = sorted(temp, key=lambda ele: ele[0], reverse=True)
-                    T1[cur_state, i, :] = [tmp[0] for tmp in temp[:topk]]
-                    T2[cur_state, i, :] = [(tmp[1], tmp[2]) for tmp in temp[:topk]]
+                    prefill = [[-9999, -9999, -9999]]*(topk - len(temp)) if len(temp) < topk else None
+                    topk_list = temp[:topk] if prefill is None else temp + prefill
+                    T1[cur_state, i, :] = [tmp[0] for tmp in topk_list]
+                    T2[cur_state, i, :] = [(tmp[1], tmp[2]) for tmp in topk_list]
             prev = i
 
         for last_state in states.keys():
@@ -256,7 +258,6 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                 if i == 0:
                     path.append(begin_id)
                     break
-                # print(current)
                 last_state, last_k = int(current[0]), int(current[1])
                 path.append(last_state)
                 current = T2[last_state, i, last_k]
@@ -350,7 +351,7 @@ def main():
     toy_Query_File = './toy_example/Query_File'
     # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
     # top_k_res = top_k_viterbi(State_File, Symbol_File, Query_File, 3)
-    top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 2)
+    top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 4)
     for i in top_k_res:
         print(i)
 
