@@ -14,6 +14,11 @@ def _get_k_largest(lst, k):
     sorted_lst = sorted([(val, index) for index, val in enumerate(lst)])
     return list(reversed(sorted_lst[-k:]))
 
+def top_n_indexes(arr, n):
+    idx = np.argpartition(arr, arr.size-n, axis=None)[-n:]
+    width = arr.shape[1]
+    return [divmod(i, width) for i in idx]
+
 def viterbi_algorithm(State_File, Symbol_File, Query_File):
     return viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k=1)
 
@@ -107,12 +112,7 @@ def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
             if states[last_state] in ('BEGIN', 'END'): continue
             T1[last_state, -1], T2[last_state, -1] = T1[last_state, prev] + math.log(transition_probabilities[last_state, end_id]), last_state
 
-        # pprint(T1)
-        # print(T2.shape)
-        # pprint(T2)
-
         last_column = T1[:-2, -1]
-        # print(last_column)
         for val, index in _get_k_largest(last_column, k):
             path = []
             score = val
@@ -238,11 +238,26 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                 T1[last_state, -1, k], T2[last_state, -1, k] = T1[last_state, prev, k] + math.log(transition_probabilities[last_state, end_id]), last_state
 
         pprint(T1)
-        print(T2.shape)
         pprint(T2)
 
-    #     last_column = T1[:-2, -1]
-    #     # print(last_column)
+        last_slice = T1[:-2, -1, :]
+        print(last_slice)
+        top_k_indexes = top_n_indexes(last_slice, topk)
+        top_k_results = sorted([(last_slice[i, j], (i, j)) for i, j in top_k_indexes], key=lambda ele: ele[0], reverse=True)
+        print(top_k_results)
+        for top_i_prob, top_i_end in top_k_results:
+            path = []
+            path.append(end_id)
+            i, j = top_i_end
+            current = int(T2[i, -1, j])
+            print(current)
+            # for i in range(len(T2[0])-2, -1, -1):
+            #     if i == 1:
+            #         path.append(begin_id)
+            #         break
+            #     path.append(current)
+                
+
     #     for val, index in _get_k_largest(last_column, k):
     #         path = []
     #         score = val
