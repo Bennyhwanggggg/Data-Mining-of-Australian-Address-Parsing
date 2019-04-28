@@ -43,8 +43,6 @@ def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
             symbol_id = symbols[token] if token in symbols.keys() else len(
                 symbols.keys())  # Give UNK the last id
             tk.append(symbol_id)
-        # print(query_in_token)
-        # print(tk)
         query_list_in_id.append(tk)
 
 
@@ -89,7 +87,6 @@ def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
         T2 = np.array([[0.0 for _ in range(len(query)+2)] for _ in range(N)])
 
         T1[:, 0] = np.log(transition_probabilities[begin_id, :])
-        # T2[:, 0] = begin_id
         prev = 0
 
         for i in range(1, len(query)+1):
@@ -136,11 +133,133 @@ def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
 
 
 # Question 2
-
-
 # do not change the heading of the function
 def top_k_viterbi(State_File, Symbol_File, Query_File, k):
-    return viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k=k)
+    np.seterr(divide='ignore')
+    # Get the states and transitions from the file.
+    states, transitions = read_state_file(State_File)
+
+    # find BEGIN and END id
+    begin_id, end_id = None, None
+    for id in states.keys():
+        if states[id] == 'BEGIN':
+            begin_id = id
+        if states[id] == 'END':
+            end_id = id
+    N = len(states.keys())
+
+    # Get the symbols and emissions from the file.
+    symbols, emissions = read_symbol_file(Symbol_File, N)
+    query_list = parse_query_file(Query_File)
+    query_list_in_id = []
+    # Convert each token into symbol IDs
+    for query_in_token in query_list:
+        tk = []
+        for token in query_in_token:
+            symbol_id = symbols[token] if token in symbols.keys() else len(
+                symbols.keys())  # Give UNK the last id
+            tk.append(symbol_id)
+        query_list_in_id.append(tk)
+
+
+    # Smoothing the transition probabilities
+    transition_probabilities = np.array(
+        [[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
+    for i in range(len(transition_probabilities)):
+        for j in range(len(transition_probabilities[0])):
+            # ignore when state to transition to is 'BEGIN' since there is no transition to it
+            if states[j] == 'BEGIN':
+                continue
+            # ignore when state to transition from is 'END' since there is no transition from it
+            if states[i] == 'END':
+                continue
+            # cannot go from begin to end straight away
+            if states[i] == 'BEGIN' and states[j] == 'END':
+                continue
+            transition_probabilities[i, j] = (
+                transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
+
+    transition_probabilities = transition_probabilities[:-1, :]
+
+    # Smoothing the emission probabilities
+    M = len(symbols.keys())+1  # +1 for UNK
+    emission_probabilities = np.array(
+        [[0.0 for _ in range(M)] for _ in range(N)])
+    for i in range(N):
+        for j in range(M):
+            if states[i] == 'BEGIN' or states[i] == 'END':
+                continue
+            emission_probabilities[i, j] = (
+                emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M)
+
+    emission_probabilities = emission_probabilities[:-2, :]
+
+    # Process each query
+    np.set_printoptions(precision=5)
+    ret = []
+    topk = k
+    for query in query_list_in_id:
+        # setup dp
+        T1 = np.array([[[0.0 for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
+        T2 = np.array([[[0.0 for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
+
+        for i in range(topk):
+            T1[:, 0, i] = np.log(transition_probabilities[begin_id, :])
+        prev = 0
+
+        for i in range(1, len(query)+1):
+            # i is used for index the column of dp table
+            obs = query[i-1]
+            for cur_state in states.keys():
+                if states[cur_state] in ('BEGIN', 'END'): continue
+                if i == 1:
+                    for k in range(topk):
+                        T1[cur_state, i, k], T2[cur_state, i, k] = (T1[cur_state, 0, k] + math.log(emission_probabilities[cur_state, obs])), begin_id
+                else:
+                    # Best_K_Values(t, i) = Top K over all i,preceding_state,k (emissions[i][o_t] * m[preceding_state][k] * transition[preceding_state][i])
+                    temp = []
+                    for last_state in states.keys():
+                        if states[last_state] in ('BEGIN', 'END'):
+                            continue
+                        for k in range(topk):
+                            p = T1[last_state, prev, k] + \
+                                math.log(transition_probabilities[last_state, cur_state]) + \
+                                math.log(emission_probabilities[cur_state, obs])
+                            if [p, last_state] not in temp:
+                                temp.append([p, last_state])
+                    temp = sorted(temp, key=lambda ele: ele[0], reverse=True)
+                    T1[cur_state, i, :] = [tmp[0] for tmp in temp[:topk]]
+                    T2[cur_state, i, :] = [tmp[1] for tmp in temp[:topk]]
+            prev = i
+
+        for last_state in states.keys():
+            if states[last_state] in ('BEGIN', 'END'): continue
+            for k in range(topk):
+                T1[last_state, -1, k], T2[last_state, -1, k] = T1[last_state, prev, k] + math.log(transition_probabilities[last_state, end_id]), last_state
+
+        pprint(T1)
+        print(T2.shape)
+        pprint(T2)
+
+    #     last_column = T1[:-2, -1]
+    #     # print(last_column)
+    #     for val, index in _get_k_largest(last_column, k):
+    #         path = []
+    #         score = val
+    #         current = int(T2[index, -1])
+    #         path.append(end_id)
+    #         for i in range(len(T2[0])-2, -1, -1):
+    #             if i == 0:
+    #                 path.append(begin_id)
+    #                 break
+    #             # print(i, current)
+    #             path.append(current)
+    #             current = int(T2[current, i])
+    #         path.reverse()
+    #         path.append(score)
+    #         # print(path)
+    #         ret.append(path)
+    # return ret
 
 
 # Question 3 + Bonus
@@ -228,7 +347,8 @@ def main():
     # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
     # top_k_res = top_k_viterbi(State_File, Symbol_File, Query_File, 3)
     top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 3)
-    return top_k_res
+    # for i in top_k_res:
+    #     print(i)
 
 
 if __name__ == "__main__":
