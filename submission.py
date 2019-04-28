@@ -6,6 +6,8 @@ import numpy as np
 import math
 from pprint import pprint
 
+VERY_LARGE_NEG_N = -999999
+
 def _get_k_largest(lst, k):
     """ return the k largest value and their index, reversed order
     :lst: a indexible list
@@ -229,7 +231,7 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                             if not temp or not any([p, last_state] == [tmp[0], tmp[1]] for tmp in temp):
                                 temp.append([p, last_state, k])
                     temp = sorted(temp, key=lambda ele: ele[0], reverse=True)
-                    prefill = [[-9999, -9999, -9999]]*(topk - len(temp)) if len(temp) < topk else None
+                    prefill = [[VERY_LARGE_NEG_N, VERY_LARGE_NEG_N, VERY_LARGE_NEG_N]]*(topk - len(temp)) if len(temp) < topk else None
                     topk_list = temp[:topk] if prefill is None else temp + prefill
                     T1[cur_state, i, :] = [tmp[0] for tmp in topk_list]
                     T2[cur_state, i, :] = [(tmp[1], tmp[2]) for tmp in topk_list]
@@ -245,27 +247,33 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
         # pprint(T2)
 
         last_slice = T1[:-2, -1, :]
-        print(last_slice)
-        top_k_indexes = top_n_indexes(last_slice, topk)
+        top_k_indexes = top_n_indexes(last_slice, last_slice.shape[0]*last_slice.shape[1])
         top_k_results = sorted([(last_slice[i, j], (i, j)) for i, j in top_k_indexes], key=lambda ele: ele[0], reverse=True)
         current_ret = []
+        pprint(last_slice)
         for top_i_prob, top_i_end in top_k_results:
             path = []
             path.append(end_id)
             i, j = top_i_end
             current = T2[i, -1, j]
+            fail_path = False
             for i in range(len(T2[0])-2, -1, -1):
                 if i == 0:
                     path.append(begin_id)
                     break
                 last_state, last_k = int(current[0]), int(current[1])
+                if last_k == VERY_LARGE_NEG_N:
+                    fail_path = True
+                    break
                 path.append(last_state)
                 current = T2[last_state, i, last_k]
+            if fail_path:
+                continue
             path.reverse()
             path.append(top_i_prob)
             current_ret.append(path)
         current_ret = sorted(current_ret, key=lambda x: (-x[-1], [x[a] for a in range(len(x)-1, -1, -1)]))
-        ret.extend(current_ret)
+        ret.extend(current_ret[:topk])
     return ret
 
 
@@ -353,9 +361,14 @@ def main():
     toy_Query_File = './toy_example/Query_File'
     # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
     # top_k_res = top_k_viterbi(State_File, Symbol_File, Query_File, 3)
-    top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 4)
-    for i in top_k_res:
-        print(i)
+    top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 20)
+    top_20_res = [[3, 0, 0, 1, 2, 4, -9.843403381747937], [3, 0, 0, 0, 2, 4, -10.131085454199718], [3, 0, 0, 0, 0, 4, -10.20007832568667], [3, 1, 2, 1, 2, 4, -10.382399882480625], [3, 0, 2, 1, 2, 4, -10.536550562307884], [3, 0, 0, 0, 1, 4, -10.641911077965709], [3, 0, 0, 1, 1, 4, -10.913844793449352], [3, 2, 1, 1, 2, 4, -10.942015670416048], [3, 0, 0, 2, 1, 4, -11.047376186073874], [3, 2, 0, 1, 2, 4, -11.096166350243307], [3, 0, 1, 1, 2, 4, -11.096166350243307], [3, 2, 0, 0, 2, 4, -11.383848422695086], [3, 2, 0, 0, 0, 4, -11.452841294182038], [3, 1, 2, 1, 1, 4, -11.452841294182038], [3, 1, 1, 1, 2, 4, -11.50163145835147], [3, 2, 1, 2, 1, 4, -11.58637268680656], [3, 0, 2, 1, 1, 4, -11.606991974009297], [3, 2, 2, 1, 2, 4, -11.635162850975993], [3, 0, 1, 2, 1, 4, -11.74052336663382], [3, 1, 0, 1, 2, 4, -11.78931353080325], [3, 2, 1, 2, 4, -9.397116279119517], [3, 0, 0, 2, 4, -9.551266958946776], [3, 0, 1, 2, 4, -9.551266958946776], [3, 0, 0, 0, 4, -9.620259830433728], [3, 1, 2, 1, 4, -9.907941902885508], [3, 1, 1, 2, 4, -9.956732067054942], [3, 0, 0, 1, 4, -10.062092582712767], [3, 0, 2, 1, 4, -10.062092582712767], [3, 2, 1, 1, 4, -10.467557690820932], [3, 0, 1, 1, 4, -10.62170837064819], [3, 1, 2, 2, 4, -10.649879247614885], [3, 2, 0, 2, 4, -10.804029927442144], [3, 0, 2, 2, 4, -10.804029927442144], [3, 2, 0, 0, 4, -10.873022798929096], [3, 1, 2, 0, 4, -10.873022798929096], [3, 0, 2, 0, 4, -11.027173478756353], [3, 1, 1, 1, 4, -11.027173478756355], [3, 2, 2, 1, 4, -11.160704871380876], [3, 2, 0, 1, 4, -11.314855551208135], [3, 1, 0, 2, 4, -11.497177108002088]]
+    i = 0
+    pprint(top_k_res)
+    for res, expected in zip(top_k_res, top_20_res):
+        if res != expected:
+            print('{}: expected: {}, got: {}'.format(i, expected, res))
+        i+=1
 
 
 if __name__ == "__main__":
