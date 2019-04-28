@@ -202,11 +202,11 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
     topk = k
     for query in query_list_in_id:
         # setup dp
-        T1 = np.array([[[0.0 for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
-        T2 = np.array([[[(0, 0) for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
+        T1 = np.array([[[[] for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
+        T2 = np.array([[[[] for _ in range(topk)] for _ in range(len(query)+2)] for _ in range(N)])
 
         for i in range(topk):
-            T1[:, 0, i] = np.log(transition_probabilities[begin_id, :])
+            T1[:, 0, i] = [np.log(transition_probabilities[begin_id, :])]
         prev = 0
 
         for i in range(1, len(query)+1):
