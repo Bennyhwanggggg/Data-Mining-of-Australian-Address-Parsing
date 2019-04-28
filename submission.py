@@ -251,7 +251,7 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
             i, j = top_i_end
             current = T2[i, -1, j]
             for i in range(len(T2[0])-2, -1, -1):
-                if i == 1:
+                if i == 0:
                     path.append(begin_id)
                     break
                 last_state, last_k = int(current[0]), int(current[1])
