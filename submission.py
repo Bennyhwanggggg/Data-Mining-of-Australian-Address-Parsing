@@ -302,8 +302,7 @@ def advanced_decoding(State_File, Symbol_File, Query_File):
         [[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
     total_transitions = sum(transitions.sum(axis=1))
     total_emissions = emissions.sum(axis=1)
-    d = 0.001
-    alpha = 0.5
+    d = 0.75
     for i in range(len(transition_probabilities)):
         for j in range(len(transition_probabilities[0])):
             # ignore when state to transition to is 'BEGIN' since there is no transition to it
@@ -316,13 +315,7 @@ def advanced_decoding(State_File, Symbol_File, Query_File):
             if states[i] == 'BEGIN' and states[j] == 'END':
                 continue
             prob = max((transitions[i, j]- d), 0)
-            # if prob == 0:
-            #     reserved = (10*d)/np.sum(transitions[i, :])
-            #     denominator = 1 - (np.sum(transitions[i, :]) + np.sum(transitions[:, i]) - transitions[i, j])/total_transitions
-            #     alpha = reserved*denominator
-            #     transition_probabilities[i, j] = alpha
-            # else:
-            #     transition_probabilities[i, j] = prob/np.sum(transitions[i, :])
+            alpha = 0 if prob != 0 else 0.0051
             transition_probabilities[i, j] = (prob / (np.sum(transitions[i, :]) + N - 1)) + alpha*(np.sum(transitions[i, :])/total_transitions)
 
     transition_probabilities = transition_probabilities[:-1, :]
