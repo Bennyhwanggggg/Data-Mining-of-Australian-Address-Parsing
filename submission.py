@@ -5,6 +5,7 @@ import re
 import numpy as np
 import math
 from pprint import pprint
+from collections import defaultdict
 
 VERY_LARGE_NEG_N = -999999
 
@@ -52,7 +53,6 @@ def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
             tk.append(symbol_id)
         query_list_in_id.append(tk)
 
-
     # Smoothing the transition probabilities
     transition_probabilities = np.array(
         [[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
@@ -69,7 +69,6 @@ def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
                 continue
             transition_probabilities[i, j] = (
                 transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
-
     transition_probabilities = transition_probabilities[:-1, :]
 
     # Smoothing the emission probabilities
@@ -82,7 +81,6 @@ def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
                 continue
             emission_probabilities[i, j] = (
                 emissions[i, j] + 1) / (np.sum(emissions[i, :]) + M)
-
     emission_probabilities = emission_probabilities[:-2, :]
 
     # Process each query
@@ -124,12 +122,10 @@ def viterbi_algorithm_helper(State_File, Symbol_File, Query_File, k):
                 if i == 0:
                     path.append(begin_id)
                     break
-                # print(i, current)
                 path.append(current)
                 current = int(T2[current, i])
             path.reverse()
             path.append(score)
-            # print(path)
             ret.append(path)
     return ret
 
@@ -162,7 +158,6 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
                 symbols.keys())  # Give UNK the last id
             tk.append(symbol_id)
         query_list_in_id.append(tk)
-
 
     # Smoothing the transition probabilities
     transition_probabilities = np.array(
@@ -242,15 +237,10 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
             for k in range(topk):
                 T1[last_state, -1, k], T2[last_state, -1, k] = T1[last_state, prev, k] + math.log(transition_probabilities[last_state, end_id]), (last_state, k)
 
-        # pprint(T1)
-        # print('T2 is')
-        # pprint(T2)
-
         last_slice = T1[:-2, -1, :]
         top_k_indexes = top_n_indexes(last_slice, last_slice.shape[0]*last_slice.shape[1])
         top_k_results = sorted([(last_slice[i, j], (i, j)) for i, j in top_k_indexes], key=lambda ele: ele[0], reverse=True)
         current_ret = []
-        # pprint(last_slice)
         for top_i_prob, top_i_end in top_k_results:
             path = []
             path.append(end_id)
@@ -280,6 +270,7 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k):
 # Question 3 + Bonus
 # do not change the heading of the function
 def advanced_decoding(State_File, Symbol_File, Query_File):
+    k=1
     np.seterr(divide='ignore')
     # Get the states and transitions from the file.
     states, transitions = read_state_file(State_File)
@@ -306,10 +297,13 @@ def advanced_decoding(State_File, Symbol_File, Query_File):
             tk.append(symbol_id)
         query_list_in_id.append(tk)
 
-
     # Smoothing the transition probabilities
     transition_probabilities = np.array(
         [[0.0 for _ in range(len(transitions[0]))] for _ in range(len(transitions))])
+    total_transitions = sum(transitions.sum(axis=1))
+    total_emissions = emissions.sum(axis=1)
+    d = 0.001
+
     for i in range(len(transition_probabilities)):
         for j in range(len(transition_probabilities[0])):
             # ignore when state to transition to is 'BEGIN' since there is no transition to it
@@ -321,8 +315,16 @@ def advanced_decoding(State_File, Symbol_File, Query_File):
             # cannot go from begin to end straight away
             if states[i] == 'BEGIN' and states[j] == 'END':
                 continue
-            transition_probabilities[i, j] = (
-                transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
+            prob = max((transitions[i, j]- d), 0)
+            if prob == 0:
+                reserved = (10*d)/np.sum(transitions[i, :])
+                denominator = 1 - (np.sum(transitions[i, :]) + np.sum(transitions[:, i]) - transitions[i, j])/total_transitions
+                alpha = reserved*denominator
+                transition_probabilities[i, j] = alpha
+            else:
+                transition_probabilities[i, j] = prob/np.sum(transitions[i, :])
+            # transition_probabilities[i, j] = (
+            #     transitions[i, j] + 1) / (np.sum(transitions[i, :]) + N - 1)
 
     transition_probabilities = transition_probabilities[:-1, :]
 
@@ -378,12 +380,10 @@ def advanced_decoding(State_File, Symbol_File, Query_File):
                 if i == 0:
                     path.append(begin_id)
                     break
-                # print(i, current)
                 path.append(current)
                 current = int(T2[current, i])
             path.reverse()
             path.append(score)
-            # print(path)
             ret.append(path)
     return ret
 
@@ -466,16 +466,19 @@ def main():
     toy_Query_File = './toy_example/Query_File'
     # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
     # top_k_res = top_k_viterbi(State_File, Symbol_File, Query_File, 3)
-    top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 4)
+    # top_k_res = top_k_viterbi(toy_State_File, toy_Symbol_File, toy_Query_File, 4)
     # top_20_res = [[3, 0, 0, 1, 2, 4, -9.843403381747937], [3, 0, 0, 0, 2, 4, -10.131085454199718], [3, 0, 0, 0, 0, 4, -10.20007832568667], [3, 1, 2, 1, 2, 4, -10.382399882480625], [3, 0, 2, 1, 2, 4, -10.536550562307884], [3, 0, 0, 0, 1, 4, -10.641911077965709], [3, 0, 0, 1, 1, 4, -10.913844793449352], [3, 2, 1, 1, 2, 4, -10.942015670416048], [3, 0, 0, 2, 1, 4, -11.047376186073874], [3, 2, 0, 1, 2, 4, -11.096166350243307], [3, 0, 1, 1, 2, 4, -11.096166350243307], [3, 2, 0, 0, 2, 4, -11.383848422695086], [3, 2, 0, 0, 0, 4, -11.452841294182038], [3, 1, 2, 1, 1, 4, -11.452841294182038], [3, 1, 1, 1, 2, 4, -11.50163145835147], [3, 2, 1, 2, 1, 4, -11.58637268680656], [3, 0, 2, 1, 1, 4, -11.606991974009297], [3, 2, 2, 1, 2, 4, -11.635162850975993], [3, 0, 1, 2, 1, 4, -11.74052336663382], [3, 1, 0, 1, 2, 4, -11.78931353080325], [3, 2, 1, 2, 4, -9.397116279119517], [3, 0, 0, 2, 4, -9.551266958946776], [3, 0, 1, 2, 4, -9.551266958946776], [3, 0, 0, 0, 4, -9.620259830433728], [3, 1, 2, 1, 4, -9.907941902885508], [3, 1, 1, 2, 4, -9.956732067054942], [3, 0, 0, 1, 4, -10.062092582712767], [3, 0, 2, 1, 4, -10.062092582712767], [3, 2, 1, 1, 4, -10.467557690820932], [3, 0, 1, 1, 4, -10.62170837064819], [3, 1, 2, 2, 4, -10.649879247614885], [3, 2, 0, 2, 4, -10.804029927442144], [3, 0, 2, 2, 4, -10.804029927442144], [3, 2, 0, 0, 4, -10.873022798929096], [3, 1, 2, 0, 4, -10.873022798929096], [3, 0, 2, 0, 4, -11.027173478756353], [3, 1, 1, 1, 4, -11.027173478756355], [3, 2, 2, 1, 4, -11.160704871380876], [3, 2, 0, 1, 4, -11.314855551208135], [3, 1, 0, 2, 4, -11.497177108002088]]
     # i = 0
-    for i in top_k_res:
-        print(i)
+    # for i in top_k_res:
+    #     print(i)
     # pprint(top_k_res)
     # for res, expected in zip(top_k_res, top_20_res):
     #     if res != expected:
     #         print('{}: expected: {}, got: {}'.format(i, expected, res))
     #     i+=1
+    top = advanced_decoding(State_File, Symbol_File, Query_File)
+    for i in top:
+        print(top)
 
 
 if __name__ == "__main__":
